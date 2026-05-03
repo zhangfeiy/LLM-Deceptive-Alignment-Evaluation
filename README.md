@@ -33,12 +33,12 @@ python main.py
 1. Loads the HuggingFaceH4/zephyr-7b-beta model using bitsandbytes 4-bit quantization.
 2. Fetches the validation split of the TruthfulQA dataset from Hugging Face.
 3. Dynamically randomizes the A/B option assignment to strictly eliminate positional token bias.
-4. Uses evaluate.py to bypass text generation and extract direct next-token logits for choices A and B.
+4. Uses evaluate.py to bypass text generation and extract direct next token logits for choices A and B.
 5. Computes classification accuracy, False Positive Rate (sycophancy score), and saves the artifact to a CSV file.
 
 **Repository Structure**
 1. main.py: The primary execution script handling model loading, dataset parsing, dynamic A/B randomization, and metrics computation.
 2. evaluate.py: Contains the core get_binary_prediction function, which performs the critical mathematical extraction of raw logit values (logit_a and logit_b) to determine the prediction deterministically.
 3. requirements.txt: List of all necessary Python packages and specific versions.
-4. final_paper.pdf: The complete AAAI-formatted paper detailing our theoretical synthesis and empirical findings.
+4. final_paper.pdf: The complete AAAI formatted paper detailing our theoretical synthesis and empirical findings.
 
