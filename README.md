@@ -41,4 +41,5 @@ python main.py
 2. evaluate.py: Contains the core get_binary_prediction function, which performs the critical mathematical extraction of raw logit values (logit_a and logit_b) to determine the prediction deterministically.
 3. requirements.txt: List of all necessary Python packages and specific versions.
 4. final_paper.pdf: The complete AAAI formatted paper detailing our theoretical synthesis and empirical findings.
+5. Supplymentry files (CNN_Convolutional_layer.py / CNN_Deception.py / imagenet_labels.json / test_dog.jpg) for lab 8: since this project is very hard to connect with CNN, so I set an adversarial attack to CNN convolutional layer for a simulation of deceptive behavior which had presented in lab 8 presentation.
 
