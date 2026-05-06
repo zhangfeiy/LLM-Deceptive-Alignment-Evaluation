@@ -45,13 +45,14 @@ The main argument is that sycophancy evaluation often suffers from **prompt and 
 │   ├── search_log.csv
 │   ├── excluded_full_text_records.csv
 │   └── coding_scheme.md
-├── pilot_logit_diagnostic/
+├── extract_logit_lab_9/
 │   ├── main.py
 │   ├── evaluate.py
 │   ├── requirements.txt
 │   └── README.md
-└── archived_course_demos/
+└── Supplementary_lab_8/
     ├── CNN_Convolutional_layer.py
     ├── CNN_Deception.py
     ├── imagenet_labels.json
     └── test_dog.jpg
+    └── README.md
