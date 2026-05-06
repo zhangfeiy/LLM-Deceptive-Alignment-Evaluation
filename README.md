@@ -40,6 +40,10 @@ The main argument is that sycophancy evaluation often suffers from **prompt and 
 │   ├── final_paper.pdf
 │   ├── main.tex
 │   └── references.bib
+├── review_materials/
+│   ├── search_log.csv
+│   ├── coding_scheme.md
+│   ├── included_studies_coding.csv
 ├── extract_logit_lab_9/ (this is a test experimental part on Lab 9)
 │   ├── main.py
 │   ├── evaluate.py
