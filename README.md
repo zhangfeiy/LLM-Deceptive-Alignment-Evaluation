@@ -52,4 +52,4 @@ The main argument is that sycophancy evaluation often suffers from **prompt and 
     └── test_dog.jpg
     └── README.md
 └── README.md
-└── Responses to Lab 10 Feedback.docx 
+└── Responses to Lab 10 Feedback.PDF 
