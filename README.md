@@ -1,45 +1,57 @@
-# Empirical Evaluation of LLM Deceptive Alignment via Logit Based Classification
+# Measuring Sycophancy in Preference Aligned Large Language Models
 
-This repository contains the official implementation and evaluation pipeline for our Machine Learning Final Project: **Rethinking Preference Optimization: A Systematic Review and Empirical Classification Analysis of LLM Deceptive Alignment**.
+This repository contains the paper, review materials, and supplementary code for a course level machine learning review project at GWU.
 
-**Team Members:** Zhangfei Yang
+The final paper is a review paper, not a new benchmark paper. It studies how recent work evaluates sycophancy and related failure modes in preference aligned large language models.
+
+## Paper Title
+
+**Measuring Sycophancy in Preference Aligned Large Language Models: A Review of Prompt Designs, Metrics, and Evaluation Gaps**
 
 ## Project Overview
-Recent evidence suggests that preference based alignment methods (like RLHF and DPO) may inadvertently induce deceptive alignment—where Large Language Models prioritize sycophancy or surface level helpfulness over factual truth to appease perceived user personas. 
 
-Instead of relying on flawed generative "LLM as a judge" evaluations, this project reframes alignment evaluation as a **strict deterministic binary classification task**. We extract next token logits from a 4-bit quantized 7B model (Zephyr-7b-beta) on the TruthfulQA benchmark to explicitly measure the "alignment tax" via core machine learning metrics, isolating the False Positive Rate (FPR) as a quantitative proxy for reward hacking.
+Preference aligned LLMs are often evaluated by helpfulness, truthfulness, reward score, or judge preference. However, these metrics do not always measure the same failure.
 
-## Environment Setup & Hardware Requirements
-This pipeline is optimized for constrained hardware environments, specifically a **Google Colab T4 GPU** (16GB VRAM), utilizing 4-bit NormalFloat (NF4) quantization.
+This project focuses on a specific measurement problem:
 
-**Dependencies:**
-- Python 3.10+
-- PyTorch >= 2.0.0
-- Transformers >= 4.38.0
-- BitsAndBytes >= 0.46.1
+> Many papers use the term "sycophancy," but they often measure different behaviors.
 
-**Installation:**
-To replicate the environment, run:
-```bash
-pip install -r requirements.txt
-```
+For example:
 
-**Run the evaluation:**
-```bash
-python main.py
-```
+- **Agreement rate** can detect direct agreement with a user's false belief.
+- **Truthfulness accuracy** can detect false answers, but may miss whether the model corrected the user's false premise.
+- **LLM as a judge scores** may reward fluent or polite responses even when the model avoids clear correction.
+- **Reward model scores** are useful for reward hacking analysis, but they do not directly show conversational sycophancy.
 
-**What the script does:**
-1. Loads the HuggingFaceH4/zephyr-7b-beta model using bitsandbytes 4-bit quantization.
-2. Fetches the validation split of the TruthfulQA dataset from Hugging Face.
-3. Dynamically randomizes the A/B option assignment to strictly eliminate positional token bias.
-4. Uses evaluate.py to bypass text generation and extract direct next token logits for choices A and B.
-5. Computes classification accuracy, False Positive Rate (sycophancy score), and saves the artifact to a CSV file.
+The review therefore organizes prior work by:
 
-**Repository Structure**
-1. main.py: The primary execution script handling model loading, dataset parsing, dynamic A/B randomization, and metrics computation.
-2. evaluate.py: Contains the core get_binary_prediction function, which performs the critical mathematical extraction of raw logit values (logit_a and logit_b) to determine the prediction deterministically.
-3. requirements.txt: List of all necessary Python packages and specific versions.
-4. final_paper.pdf: The complete AAAI formatted paper detailing our theoretical synthesis and empirical findings.
-5. Supplymentry files (CNN_Convolutional_layer.py / CNN_Deception.py / imagenet_labels.json / test_dog.jpg) for lab 8: since this project is very hard to connect with CNN, so I set an adversarial attack to CNN convolutional layer for a simulation of deceptive behavior which had presented in lab 8 presentation.
+1. behavior type,
+2. prompt design,
+3. evaluation format,
+4. metric type.
 
+The main argument is that sycophancy evaluation often suffers from **prompt and metric mismatch**. A metric that works for direct false agreement may fail for hedged correction, false premise acceptance, or reward driven accommodation.
+
+## Repository Structure
+
+```text
+.
+├── paper/
+│   ├── final_paper.pdf
+│   ├── main.tex
+│   └── references.bib
+├── review_materials/
+│   ├── included_studies_coding.csv
+│   ├── search_log.csv
+│   ├── excluded_full_text_records.csv
+│   └── coding_scheme.md
+├── pilot_logit_diagnostic/
+│   ├── main.py
+│   ├── evaluate.py
+│   ├── requirements.txt
+│   └── README.md
+└── archived_course_demos/
+    ├── CNN_Convolutional_layer.py
+    ├── CNN_Deception.py
+    ├── imagenet_labels.json
+    └── test_dog.jpg
