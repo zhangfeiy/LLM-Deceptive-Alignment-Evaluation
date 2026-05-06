@@ -40,19 +40,16 @@ The main argument is that sycophancy evaluation often suffers from **prompt and 
 │   ├── final_paper.pdf
 │   ├── main.tex
 │   └── references.bib
-├── review_materials/
-│   ├── included_studies_coding.csv
-│   ├── search_log.csv
-│   ├── excluded_full_text_records.csv
-│   └── coding_scheme.md
-├── extract_logit_lab_9/
+├── extract_logit_lab_9/ (this is a test experimental part on Lab 9)
 │   ├── main.py
 │   ├── evaluate.py
 │   ├── requirements.txt
 │   └── README.md
-└── Supplementary_lab_8/
+└── Supplementary_lab_8/ （this is the coding resources for Lab 8)
     ├── CNN_Convolutional_layer.py
     ├── CNN_Deception.py
     ├── imagenet_labels.json
     └── test_dog.jpg
     └── README.md
+└── README.md
+└── Responses to Lab 10 Feedback.docx 
