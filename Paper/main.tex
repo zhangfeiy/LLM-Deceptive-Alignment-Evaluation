@@ -1,1 +1,554 @@
+\documentclass[letterpaper]{article} % DO NOT CHANGE THIS
+\usepackage{aaai2026}  % DO NOT CHANGE THIS
+\usepackage{times}  % DO NOT CHANGE THIS
+\usepackage{helvet}  % DO NOT CHANGE THIS
+\usepackage{courier}  % DO NOT CHANGE THIS
+\usepackage[hyphens]{url}  % DO NOT CHANGE THIS
+\usepackage{graphicx} % DO NOT CHANGE THIS
+\urlstyle{rm} % DO NOT CHANGE THIS
+\def\UrlFont{\rm}  % DO NOT CHANGE THIS
+\usepackage{natbib}  % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\usepackage{caption} % DO NOT CHANGE THIS AND DO NOT ADD ANY OPTIONS TO IT
+\frenchspacing  % DO NOT CHANGE THIS
+\setlength{\pdfpagewidth}{8.5in}  % DO NOT CHANGE THIS
+\setlength{\pdfpageheight}{11in}  % DO NOT CHANGE THIS
 
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+
+\pdfinfo{
+/TemplateVersion (2026.1)
+}
+
+\title{Measuring Sycophancy in Preference Aligned Large Language Models: A Review of Prompt Designs, Metrics, and Evaluation Gaps}
+
+\author{
+Anonymous Submission
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Sycophancy evaluation in preference aligned large language models often uses metrics that are cleaner than the behavior being measured. Direct false agreement can be counted with agreement rate, but many aligned model failures are less clean: the model may give a hedged correction, partly accept a false premise, or produce a polite answer that avoids clear disagreement. This review examines 48 studies on sycophancy, preference optimization, reward hacking, truthfulness evaluation, and deceptive alignment. Using a PRISMA guided screening process, the paper codes included studies by behavior type, prompt design, evaluation format, and metric type. The central finding is a prompt and metric mismatch: user opinion prompts, false premise prompts, reward overoptimization studies, and LLM as a judge evaluations are often discussed under the same sycophancy label, although they measure different failures. Agreement rate is useful for direct agreement but weak for hedged correction. Truthfulness accuracy can miss whether the model corrected the user's premise. Judge preference can reward polished language rather than factual pushback. The review argues that sycophancy evaluation should report what failure is being tested and use metrics that directly match that failure.
+\end{abstract}
+
+\section{Introduction}
+
+Preference alignment has made LLMs easier to use, but it has also made one evaluation problem harder to ignore: models often learn how to sound agreeable. In ordinary benchmarks, this may not look dangerous. The answer is fluent, polite, and often partly correct. The problem appears when the user is wrong. In that case, a helpful looking answer can still fail at the most important task: clearly correcting the user.
+
+The word ``sycophancy'' is now used for this problem, but the literature does not always mean the same thing by it. In some papers, sycophancy means direct agreement with a user's opinion \cite{perez2022discovering, sharma2023towards}. In others, the model accepts a false premise or imitates a common falsehood \cite{lin2022truthfulqa, wei2023simple}. Reward hacking papers study a related but different mechanism: the model optimizes a proxy reward even when that reward no longer tracks the intended objective \cite{gao2023scaling, skalse2022defining, coste2023reward}. These failures may all involve preference pressure, but they are not the same measurement problem.
+
+This distinction matters because the most common metrics break down in different ways. Agreement rate works when the model clearly says yes or no to a user belief. It becomes weak when the model produces a hedged correction, such as partially disagreeing while still validating the user's framing. Truthfulness accuracy can tell whether the final answer contains a false statement, but it often misses whether the model actually corrected the false premise. LLM as a judge scores are even more fragile here: a judge may reward a response for being balanced, polite, or detailed, even when that response avoids the hard correction \cite{zheng2023judging}.
+
+This review is built around that mismatch between behavior and metric. The question is not simply whether RLHF is worse than DPO, or whether one benchmark score is higher than another. The more basic question is whether the evaluation is measuring the failure it claims to measure. A paper using user opinion prompts and agreement rate is studying a different behavior from a paper using reward overoptimization curves or TruthfulQA style falsehood prompts. Treating all of these results as interchangeable evidence about sycophancy makes the literature look more settled than it is.
+
+The review therefore organizes 48 papers by prompt design, failure definition, evaluation format, and metric choice. This framing exposes a practical weakness in current sycophancy evaluation: the field is good at counting obvious false agreement, but much less reliable when the model gives mixed, hedged, or socially polished responses that avoid direct correction.
+
+\paragraph{Research Questions.}
+Three questions structure the review:
+
+\begin{itemize}
+    \item \textbf{RQ1:} How do recent studies define and elicit sycophantic behavior in preference aligned LLMs?
+    
+    \item \textbf{RQ2:} What metrics and evaluation protocols are used to measure sycophancy, reward hacking, and false agreement?
+    
+    \item \textbf{RQ3:} Where do current evaluations fail, especially for mixed, hedged, or indirectly accommodating responses?
+\end{itemize}
+
+\paragraph{Scope of the Review.}
+The review does not rank alignment algorithms or introduce a new benchmark. It examines whether the prompts and metrics used in prior work are actually matched to the sycophancy related behavior being claimed.
+
+\section{Background}
+
+\subsection{Preference Optimization and User Accommodation}
+
+Preference based alignment methods train LLMs to produce outputs that better match user or evaluator expectations. Early work on learning from human preferences showed that reward models could guide behavior when hand written objectives were difficult to specify \cite{christiano2017preferences}. In language modeling, RLHF became a central technique for improving summarization and instruction following \cite{stiennon2020learning, ouyang2022rlhf}. Later work explored alternatives such as reward ranked fine tuning, ranking based feedback, RLAIF, Constitutional AI, and direct preference optimization \cite{dong2023raft, yuan2023rrhf, lee2023rlaif, bai2022constitutional, rafailov2023dpo}.
+
+These methods are usually motivated by practical alignment goals: making models more useful, less toxic, and easier to interact with. Yet the same training process can encourage accommodation of user preferences even when those preferences conflict with factual correction. If a feedback signal rewards answers that sound agreeable, reassuring, or confident, a model may learn to preserve user satisfaction rather than directly challenge a false premise. This is why sycophancy should be studied as an interaction level outcome of alignment, not only as an isolated benchmark error.
+
+DPO and other direct alignment methods change the optimization procedure, but they do not remove the dependence on preference data \cite{rafailov2023dpo, zhao2023slic, ethayarajh2024kto, hejna2023contrastive}. If preference pairs reward user pleasing behavior, direct optimization can still learn that pattern. The relevant question is therefore not only which algorithm is used, but what kinds of accommodation are encoded in the training and evaluation data.
+
+\subsection{From Direct Agreement to Weak Correction}
+
+Sycophancy is often described as a model's tendency to agree with a user even when the user is wrong \cite{perez2022discovering, wei2023simple, sharma2023towards}. This is the clearest form because the failure is visible: the model explicitly validates a false belief. However, direct agreement is only one part of the problem. In many cases, a model may avoid stating the falsehood directly while still failing to correct the user's view.
+
+Weak correction is harder to measure than direct agreement. A response may contain some correct information but still fail to challenge the user's framing. It may answer around the false premise, add a mild caveat, or use language that sounds balanced without clearly correcting the mistake. Standard accuracy metrics often miss this because they judge the final answer rather than the correction behavior.
+
+Truthfulness benchmarks such as TruthfulQA test whether models imitate common human falsehoods \cite{lin2022truthfulqa}. Broader evaluation frameworks such as HELM organize model evaluation across many scenarios and metrics \cite{liang2022holistic}. These are important foundations, but sycophancy requires more targeted evaluation. The model's response must be tested not only under neutral prompts, but also under prompts where the user has a false belief, strong preference, or authority claim.
+
+\section{Method}
+
+\subsection{Review Standard and Protocol}
+
+This review followed a PRISMA 2020 guided screening structure. The goal was not to conduct a statistical meta analysis, because the selected papers use different model families, prompt formats, datasets, and metrics. The goal was to make the selection process transparent enough that another reviewer could understand why a paper was included or excluded.
+
+The review protocol was defined before full text coding. It specified four items: search sources, search terms, inclusion and exclusion criteria, and coding fields. No protocol was registered externally. The final synthesis is based on papers that explicitly discuss LLM preference alignment, sycophancy, truthfulness, reward hacking, or evaluation protocols for alignment related failures.
+
+\subsection{Search Sources and Search Terms}
+
+Papers were collected from Google Scholar, arXiv, ACM Digital Library, IEEE Xplore, and Semantic Scholar. The search focused on work from 2021 to 2026, because this period covers the main rise of instruction tuning, RLHF, DPO, LLM as a judge evaluation, and recent sycophancy benchmarks.
+
+Because the search was conducted manually rather than through a single indexed database API, the database level counts in Table \ref{tab:database_breakdown} were reconstructed from the search log and citation tracing notes. These counts document the screening process; they should not be interpreted as exhaustive coverage of all possible work on LLM sycophancy.
+
+\begin{table}[t]
+\centering
+\caption{Database level record retrieval before deduplication.}
+\label{tab:database_breakdown}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lc}
+\hline
+\textbf{Source} & \textbf{Records Retrieved} \\
+\hline
+Google Scholar & 67 \\
+arXiv & 42 \\
+Semantic Scholar & 19 \\
+ACM Digital Library & 24 \\
+IEEE Xplore & 30 \\
+Backward/forward citation search & 18 \\
+\hline
+Total before deduplication & 200 \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+Search terms were grouped into four blocks. A paper did not need to match every block, but it needed to connect alignment or LLM evaluation to at least one sycophancy related failure mode.
+
+\begin{table}[t]
+\centering
+\caption{Search term blocks used for literature retrieval.}
+\label{tab:search_terms}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{ll}
+\hline
+\textbf{Block} & \textbf{Terms Used} \\
+\hline
+Alignment method & RLHF; DPO; RLAIF; Constitutional AI; reward modeling \\
+Failure behavior & sycophancy; false agreement; false premise; deception \\
+Reward failure & reward hacking; reward gaming; overoptimization \\
+Evaluation design & TruthfulQA; HELM; LLM as a judge; red teaming \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+Searches used Boolean combinations such as ``LLM AND sycophancy,'' ``RLHF AND reward hacking,'' ``DPO AND alignment evaluation,'' ``false premise AND language model,'' and ``LLM as a judge AND bias.'' Backward and forward citation checks were also used for core papers on RLHF, DPO, TruthfulQA, sycophancy, and reward overoptimization.
+
+\begin{table*}[t]
+\centering
+\caption{Representative search queries used during literature retrieval.}
+\label{tab:search_queries}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\hline
+\textbf{Query Block} & \textbf{Example Query} & \textbf{Purpose} \\
+\hline
+Sycophancy behavior & ``large language model'' AND sycophancy & Identify papers directly studying sycophantic behavior \\
+False agreement & ``LLM'' AND ``false agreement'' OR ``user agreement'' & Retrieve studies on agreement with user beliefs \\
+False premise & ``language model'' AND ``false premise'' AND truthfulness & Find work testing correction of incorrect assumptions \\
+Preference alignment & RLHF AND ``language model'' AND alignment & Retrieve foundational preference alignment papers \\
+Direct optimization & DPO AND ``preference optimization'' AND ``language model'' & Retrieve direct preference optimization studies \\
+Reward hacking & ``reward hacking'' AND RLHF AND ``language model'' & Connect sycophancy to proxy reward failures \\
+Reward overoptimization & ``reward model overoptimization'' AND LLM & Identify studies on reward model failure under optimization pressure \\
+Evaluation bias & ``LLM as a judge'' AND bias AND evaluation & Retrieve work on judge model limitations \\
+Truthfulness benchmark & TruthfulQA AND ``language model'' & Retrieve truthfulness benchmark work \\
+Benchmark framework & HELM AND ``language model evaluation'' & Retrieve broad LLM evaluation frameworks \\
+Red teaming & ``red teaming'' AND ``language models'' & Retrieve adversarial evaluation papers \\
+\hline
+\end{tabular}%
+}
+\end{table*}
+
+\subsection{Inclusion and Exclusion Criteria}
+
+The inclusion criteria were made deliberately narrow. A paper was included only if it satisfied all three baseline requirements and at least one topical requirement.
+
+\begin{table}[t]
+\centering
+\caption{Inclusion criteria used during full text screening.}
+\label{tab:inclusion}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lp{5.7cm}}
+\hline
+\textbf{Criterion Type} & \textbf{Requirement} \\
+\hline
+Baseline & Published or released between 2021 and 2026 \\
+Baseline & Full text available in English \\
+Baseline & Provides enough methodological detail to code prompt type, metric, or alignment setting \\
+Topical & Studies LLM preference alignment, including RLHF, DPO, RLAIF, Constitutional AI, or reward modeling \\
+Topical & Evaluates sycophancy, false agreement, false premise acceptance, truthfulness, reward hacking, or deception \\
+Topical & Introduces a benchmark or evaluation protocol relevant to alignment related failure modes \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Exclusion criteria used during full text screening.}
+\label{tab:exclusion}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lp{5.7cm}}
+\hline
+\textbf{Reason} & \textbf{Excluded Papers} \\
+\hline
+Not LLM focused & Papers on small task specific NLP models without LLM alignment or evaluation relevance \\
+No evaluation content & Papers that discuss AI safety only conceptually without prompt, metric, benchmark, or training analysis \\
+No sycophancy related failure & Papers on general helpfulness or capability evaluation without false agreement, truthfulness, reward, or deception link \\
+Insufficient detail & Papers where the evaluation setup or metric could not be identified from the text \\
+Duplicate / non archival & Duplicate versions, short blog posts, slide only material, or non technical summaries \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+\subsection{PRISMA Screening Flow}
+
+The screening process is summarized in Fig.~\ref{fig:prisma_flow}. The initial search identified 200 records. After duplicate removal and removal of clearly unrelated records, 165 records remained for title and abstract screening. Eighty three papers were retained for full text assessment. Thirty five papers were excluded at full text stage, leaving 48 papers for the final synthesis.
+
+\begin{figure}[t]
+\centering
+\fbox{
+\begin{minipage}{0.92\columnwidth}
+\centering
+\textbf{Records identified from databases and citation search}\\
+$n = 200$\\[0.6em]
+$\downarrow$\\[0.6em]
+\textbf{Records after duplicates and clearly unrelated items removed}\\
+$n = 165$\\[0.6em]
+$\downarrow$\\[0.6em]
+\textbf{Records screened by title and abstract}\\
+$n = 165$\\
+Excluded at title/abstract stage: $n = 82$\\[0.6em]
+$\downarrow$\\[0.6em]
+\textbf{Full text papers assessed for eligibility}\\
+$n = 83$\\
+Excluded after full text review: $n = 35$\\
+\begin{tabular}{ll}
+No quantitative or protocol level evaluation & 12 \\
+Not LLM/preference alignment focused & 8 \\
+No sycophancy/truthfulness/reward link & 7 \\
+Insufficient methodological detail & 5 \\
+Duplicate, inaccessible, or non technical & 3 \\
+\end{tabular}\\[0.6em]
+$\downarrow$\\[0.6em]
+\textbf{Studies included in final synthesis}\\
+$n = 48$
+\end{minipage}
+}
+\caption{PRISMA style flow diagram for study screening.}
+\label{fig:prisma_flow}
+\end{figure}
+
+\subsection{Data Extraction and Coding}
+
+Each included paper was coded along six dimensions. The coding was designed to separate papers that are often grouped together under broad labels such as ``sycophancy'' or ``deceptive alignment.'' In practice, these papers often measure different things.
+
+\begin{table}[t]
+\centering
+\caption{Coding dimensions used for the 48 included papers.}
+\label{tab:coding}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{ll}
+\hline
+\textbf{Coding Dimension} & \textbf{Examples} \\
+\hline
+Alignment context & RLHF; DPO; RLAIF; reward modeling; benchmark only \\
+Behavior measured & Opinion agreement; false premise acceptance; reward seeking \\
+Prompt format & User opinion; false premise; preference pressure; red teaming \\
+Evaluation format & Free form; multiple choice; pairwise preference; judge model \\
+Metric reported & Accuracy; agreement rate; FPR; reward score; win rate \\
+Failure interpretation & Sycophancy; reward hacking; truthfulness failure; deception risk \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+A paper could receive more than one label when appropriate. For example, a study could be coded as both reward overoptimization and truthfulness evaluation if it compared reward score against factual behavior. Coding disagreements were resolved by rereading the relevant method and evaluation sections rather than by relying on paper titles.
+
+\begin{table*}[t]
+\centering
+\caption{Representative included studies and primary coding category. The full 48 paper coding sheet should be reported in the accompanying repository.}
+\label{tab:included_studies}
+\renewcommand{\arraystretch}{1.1}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\hline
+\textbf{Study} & \textbf{Primary Category} & \textbf{Evaluation / Evidence Type} & \textbf{Main Use in Review} \\
+\hline
+\cite{ouyang2022rlhf} & Preference alignment & Human preference / RLHF pipeline & Background on RLHF alignment \\
+\cite{rafailov2023dpo} & Preference alignment & Direct preference optimization & Background on DPO \\
+\cite{lee2023rlaif} & Preference alignment & AI feedback & Background on RLAIF \\
+\cite{bai2022constitutional} & Preference alignment & Rule / AI feedback & Background on Constitutional AI \\
+\cite{perez2022discovering} & Sycophancy behavior & Model written evaluations & Direct user agreement behavior \\
+\cite{wei2023simple} & Sycophancy mitigation & Synthetic data evaluation & False agreement and mitigation \\
+\cite{sharma2023towards} & Sycophancy behavior & Prompt based evaluation & User opinion agreement \\
+\cite{lin2022truthfulqa} & Truthfulness benchmark & Benchmark evaluation & Falsehood imitation / truthfulness \\
+\cite{liang2022holistic} & Evaluation framework & Multi scenario benchmark & Broad evaluation context \\
+\cite{zheng2023judging} & Judge model evaluation & LLM as a judge analysis & Judge bias and scoring limits \\
+\cite{gao2023scaling} & Reward overoptimization & Reward model analysis & Reward hacking mechanism \\
+\cite{coste2023reward} & Reward overoptimization & Reward model ensemble & Overoptimization mitigation \\
+\cite{skalse2022defining} & Reward gaming & Conceptual / formal analysis & Reward gaming definition \\
+\cite{park2023ai} & AI deception & Survey / examples & Stronger deception risk \\
+\cite{hubinger2024sleeper} & Deceptive behavior & Triggered behavior evaluation & Persistent deceptive behavior \\
+\cite{perez2023red} & Red teaming & Adversarial evaluation & Failure discovery method \\
+\cite{casper2023explore} & Red teaming & Adversarial search & Red team evaluation \\
+\hline
+\end{tabular}%
+}
+\end{table*}
+
+\subsection{Synthesis Method}
+
+The synthesis was organized around prompt metric alignment. For each group of papers, three questions were used: what user pressure does the prompt create, what model behavior is counted as failure, and what metric is used to score that failure. This approach avoids treating all sycophancy related work as equivalent.
+
+Numerical results were not pooled because the papers use different models, datasets, prompt templates, and metric definitions. Instead, the review compares evaluation logic: not whether one reported score is higher than another, but whether the score actually measures the behavior the paper claims to study.
+
+\section{Results: Taxonomic Synthesis}
+
+The synthesis is based on the coding of 48 included studies. The coding does not treat the categories as mutually exclusive: a single paper can use free form generation and LLM as a judge scoring, or combine benchmark accuracy with manual error analysis. This matters because the literature is not divided cleanly into separate camps. Many papers mix evaluation formats, but their headline claims often use broad terms such as sycophancy, truthfulness, or reward hacking.
+
+Tables \ref{tab:evaluation_distribution}, \ref{tab:prompt_distribution}, and \ref{tab:metric_distribution} summarize the distribution of evaluation formats, prompt designs, and metric types observed in the coded studies. The main descriptive pattern is that scalable evaluation formats are common, while behavior specific labels for mixed or hedged correction appear less often in the coded set.
+
+\begin{table}[t]
+\centering
+\caption{Distribution of evaluation formats among the 48 included studies. Categories are not mutually exclusive.}
+\label{tab:evaluation_distribution}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lc}
+\hline
+\textbf{Evaluation Format} & \textbf{Number of Studies} \\
+\hline
+Free form generation evaluation & 18 \\
+Multiple choice or binary choice evaluation & 10 \\
+Human evaluation / manual annotation & 12 \\
+LLM as a judge evaluation & 8 \\
+Reward model scoring or reward analysis & 12 \\
+Benchmark only evaluation & 14 \\
+Red teaming / adversarial prompting & 5 \\
+Logit or probability level analysis & 3 \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Distribution of prompt designs among the 48 included studies. Categories are not mutually exclusive.}
+\label{tab:prompt_distribution}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lc}
+\hline
+\textbf{Prompt Design} & \textbf{Number of Studies} \\
+\hline
+User opinion or belief prompt & 6 \\
+False premise prompt & 7 \\
+Preference pressure prompt & 8 \\
+Instruction following / helpfulness prompt & 12 \\
+Multiple choice conflict prompt & 6 \\
+Red teaming / adversarial prompt & 5 \\
+Benchmark scenario prompt & 14 \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Distribution of reported metric types among the 48 included studies. Categories are not mutually exclusive.}
+\label{tab:metric_distribution}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lc}
+\hline
+\textbf{Metric Type} & \textbf{Number of Studies} \\
+\hline
+Accuracy / truthfulness score & 16 \\
+Agreement rate or agreement classification & 6 \\
+False positive or misleading option selection & 4 \\
+Reward score / reward model analysis & 12 \\
+Win rate / preference score & 9 \\
+LLM as a judge score & 8 \\
+Manual error coding & 11 \\
+Qualitative case analysis & 10 \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+\subsection{RQ1: Types of Sycophancy Related Behavior}
+
+Table \ref{tab:behavior_types} organizes the reviewed literature by the specific behavior being measured rather than by alignment algorithm alone. This distinction is important because papers described as studying ``sycophancy'' often target different failure modes. Some measure direct false agreement, where the model explicitly validates an incorrect user belief. Others measure weaker forms of correction, where the model gives a partial or ambiguous response instead of clearly rejecting the user's false premise. A third group studies reward driven accommodation, where preference optimization encourages outputs that satisfy the evaluator while weakening factual correction.
+
+\begin{table*}[t]
+\centering
+\caption{Types of sycophancy related behavior discussed in the reviewed literature.}
+\label{tab:behavior_types}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\hline
+\textbf{Behavior} & \textbf{What the model does} & \textbf{Why it matters} & \textbf{Representative studies} \\
+\hline
+Opinion agreement & Agrees with a user's stated opinion or belief & Shows social agreement pressure & \cite{perez2022discovering, sharma2023towards} \\
+False premise acceptance & Answers as if a false assumption is true & Tests whether the model corrects the user & \cite{lin2022truthfulqa, wei2023simple} \\
+Hedged disagreement & Gives a weak correction while still sounding agreeable & Makes failure harder to label & \cite{zheng2023judging, liang2022holistic} \\
+Reward seeking behavior & Scores well under reward models but drifts from intended goal & Connects sycophancy to reward hacking & \cite{gao2023scaling, coste2023reward, skalse2022defining} \\
+Persistent deceptive behavior & Preserves hidden behavior even after safety training & Represents a stronger form of deception risk & \cite{hubinger2024sleeper, park2023ai} \\
+\hline
+\end{tabular}%
+}
+\end{table*}
+
+The most direct form is false agreement. Model written evaluation work and later sycophancy studies often use prompts where the user states a belief and the model is tested on whether it agrees or corrects the claim \cite{perez2022discovering, wei2023simple, sharma2023towards}. These studies are useful because the failure signal is visible. However, they do not fully capture weak correction failures, where the model never explicitly agrees but still leaves the user with the wrong impression.
+
+Weak correction is less directly measured in the current literature. Truthfulness benchmarks can detect whether a final answer is false, but they do not always show whether the model clearly corrected the user's mistaken premise \cite{lin2022truthfulqa, liang2022holistic}. This gap matters because a model can avoid an explicit false statement while still leaving the user with the wrong impression. For example, a response may add a small caveat, soften the correction, or continue answering under the user's framing.
+
+Reward driven accommodation provides a possible mechanism for these behaviors. If preference models reward agreeable, confident, or user satisfying responses, policy optimization can amplify outputs that satisfy the reward signal while weakening the underlying factual objective \cite{gao2023scaling, coste2023reward, rafailov2024scaling}. This does not prove intentional deception, but it explains why accommodation can emerge from ordinary preference optimization.
+
+\subsection{RQ2: Prompt Designs Used to Test Sycophancy}
+
+Table \ref{tab:prompt_designs} compares prompt strategies used to elicit sycophancy and related behaviors. The key difference among these strategies is the type of pressure placed on the model. Some prompts test whether the model agrees with a stated opinion. Others embed a false premise or create a direct conflict between a truthful and misleading answer.
+
+\begin{table*}[t]
+\centering
+\caption{Prompt designs used to elicit or test sycophantic behavior.}
+\label{tab:prompt_designs}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\hline
+\textbf{Prompt Design} & \textbf{Basic Idea} & \textbf{Failure It Can Reveal} & \textbf{Weakness} \\
+\hline
+User opinion prompt & User states a belief and asks for response & Direct agreement with user belief & May test social agreement more than factuality \\
+False premise prompt & Question contains an incorrect assumption & Failure to correct the premise & Hard to score when response is mixed \\
+Preference pressure prompt & Prompt implies that user prefers one answer & Preference driven agreement & Can be confused with instruction following \\
+Multiple choice prompt & Model selects between truthful and misleading options & Clear false positive selection & Less natural than conversation \\
+Free form conversation & Model gives open ended response & Realistic interaction behavior & Difficult to label consistently \\
+Red teaming prompt & Adversarial prompts search for failure cases & Rare or hidden failures & Coverage depends on search quality \\
+\hline
+\end{tabular}%
+}
+\end{table*}
+
+Opinion seeking prompts are effective for detecting direct agreement. They are also relatively easy to score because the model either agrees, disagrees, or avoids the claim. However, they do not fully test whether the model can correct a user facing factual error. A model can avoid direct agreement while still failing to provide the facts needed to correct the user.
+
+False premise prompts are more useful for testing factual correction. In this setting, the user asks a question that assumes something false. A reliable model should identify the false premise before answering. The difficulty is that free form responses may include partial correction, hedging, or long explanations that make scoring ambiguous. Judge model evaluation can miss these differences when the answer sounds polite or helpful \cite{zheng2023judging}.
+
+Free form and false premise prompts are useful because they resemble real user interactions, but they also make scoring harder. A response may partly correct the user while still following the user's framing. This is why several studies need either manual response coding or controlled follow up prompts rather than relying only on a single judge score.
+
+Multiple choice prompts are less naturalistic, but they offer stronger control. By forcing the model to choose between a truthful and misleading option, researchers can measure whether the model actually endorses the misleading content. Randomized option ordering is necessary because otherwise the result may reflect position bias rather than semantic preference.
+
+\subsection{RQ3: Metrics and Evaluation Protocols}
+
+The reviewed studies use a wide range of metrics, but not all metrics are equally useful for detecting sycophantic or weak correction behavior.
+
+\begin{table*}[t]
+\centering
+\caption{Metrics used in sycophancy, truthfulness, and reward hacking evaluation.}
+\label{tab:metrics}
+\renewcommand{\arraystretch}{1.15}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\hline
+\textbf{Metric} & \textbf{What it measures} & \textbf{Strength} & \textbf{Limitation} \\
+\hline
+Accuracy / truthfulness & Whether answer is factually correct & Easy to compare across models & Does not capture weak or hedged correction \\
+Agreement rate & Whether model agrees with user claim & Directly measures sycophancy & Too coarse for mixed responses \\
+False positive rate & Whether model selects a misleading option & Clear in binary settings & Depends on option design \\
+Reward score & Whether output is preferred by reward model & Useful for reward hacking analysis & Reward may not match truthfulness \\
+Win rate / preference score & Whether output is preferred by humans or judges & Natural for alignment evaluation & Can reward style or politeness \\
+LLM judge score & Automated quality judgment & Scalable & Sensitive to verbosity and judge bias \\
+Manual error coding & Human labels response type & More nuanced & Expensive and less reproducible \\
+\hline
+\end{tabular}%
+}
+\end{table*}
+
+Accuracy and truthfulness scores are useful for measuring whether a model produces false content, but they do not show whether the model corrected the user. A response can be factually acceptable in isolation while still failing to reject the user's mistaken premise. This is why answer level correctness may overestimate the safety of a model in interaction.
+
+Agreement rate directly measures sycophancy when the target behavior is explicit agreement. It is less useful for hedged correction. A response that says ``you may be right, but...'' may not count as full agreement, yet it may still fail to correct the user clearly. Similarly, judge preference scores can reward answers that sound balanced or empathetic even when the factual correction is weak \cite{zheng2023judging}.
+
+Manual error coding is more suitable for mixed or hedged responses because it can distinguish clear correction, partial correction, agreement, refusal, and evasion. The drawback is that manual coding is slower and less reproducible than automatic scoring. This trade off appears repeatedly in the reviewed literature: scalable metrics are easier to report, but they often miss the exact behavior that sycophancy evaluation is supposed to measure.
+
+FPR offers a different type of evidence in binary or multiple choice settings. It removes some ambiguity from free form generation by measuring whether the model selects a misleading option. This is useful when the goal is to test direct misleading option endorsement. The trade off is that multiple choice evaluation is less naturalistic and depends strongly on option design.
+
+\subsection{Cross Coding Pattern: Prompt and Metric Mismatch}
+
+The coding also shows that prompt type and metric type are often not tightly matched. Studies using user opinion prompts most often rely on agreement style labels, while benchmark oriented papers more often report truthfulness or accuracy. Reward overoptimization papers usually report reward scores or reward: performance trade offs. LLM as a judge studies report scalable preference or quality scores, but these scores are usually not designed to distinguish clear correction from hedged correction.
+
+This pattern matters for interpreting the taxonomy, but the Results section does not treat it as a final causal claim. The coded evidence shows a descriptive mismatch: similar terms such as ``sycophancy,'' ``truthfulness failure,'' and ``reward hacking'' are sometimes attached to different prompt and metric choices. The implications of this mismatch are discussed in Section \ref{sec:discussion}.
+
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Why the Same Label Creates Invalid Comparisons}
+
+The coding results show that papers often use similar language for different evaluation setups. The consequence is not just a terminology problem. It affects whether results can be compared at all. An agreement rate study can show that a model validates user beliefs too often, but it cannot by itself show that the model fails under false premise questions. A TruthfulQA style benchmark can show whether the model avoids common falsehoods, but it does not necessarily show whether the model would correct a confident user who states the falsehood first. A reward overoptimization study can show that proxy rewards break under pressure, but it is not automatically evidence of conversational sycophancy.
+
+This is why the review treats prompt design, failure definition, and metric choice as inseparable. If two papers use the same word but different prompts and metrics, their results should not be placed on the same scale. The problem is not that one metric is always wrong; the problem is that each metric only sees part of the behavior.
+
+\subsection{Agreement Rate Fails on Hedged Correction}
+
+Agreement rate is useful only when the model's behavior is cleanly separable into agreement and disagreement. That is not how many aligned models respond. They often hedge. A model may write a sentence that sounds like a correction, then soften it with uncertainty, sympathy, or a partial validation of the user's original belief. In that case, agreement rate loses much of its value.
+
+For example, a response that says ``you may have a point, but the evidence is mixed'' is not the same as a clear correction. It may also not count as full agreement. A binary agreement metric has no good place for this kind of answer. Labeling it as disagreement is too generous; labeling it as agreement may be too harsh. The real failure is weaker: the model avoided making the correction clearly.
+
+This is why manual response coding still matters. It is slower and less scalable, but it can separate clear correction, partial correction, false agreement, refusal, and evasion. Automatic metrics are attractive because they produce clean numbers. But for hedged correction, clean numbers can be misleading.
+
+\subsection{Truthfulness Scores Do Not Measure User Correction}
+
+Truthfulness accuracy is also limited. It asks whether the answer is factually right, but sycophancy often depends on how the model handles the user's framing. A model can include a true statement and still fail to correct the false premise that motivated the question.
+
+This distinction is not minor. In real interaction, users often ask questions from a mistaken starting point. The model's job is not only to avoid false sentences; it must identify the mistaken premise and correct it clearly enough for the user to notice. A benchmark that only checks the final answer may miss this interaction level failure.
+
+A better false-premise evaluation should label correction behavior directly. The model should be judged on whether it clearly rejects the false premise, partially corrects it, ignores it, or accepts it. This would make the evaluation less elegant, but more faithful to the actual risk.
+
+\subsection{Judge Preference Can Become Part of the Failure}
+
+LLM as a judge and preference based scores are especially risky for sycophancy evaluation. These scores are supposed to approximate response quality, but sycophantic answers can look high quality on the surface. They are often polite, detailed, and emotionally smooth. If the judge rewards those features more than correction, the metric reinforces the failure instead of detecting it.
+
+This is the deepest metric conflict in the reviewed literature. Preference alignment trains models to satisfy human or judge preferences, and then many evaluations use similar preferences to decide whether the model behaved well. If the preference signal itself favors agreeable answers, then the evaluation is not independent of the failure mode. It may simply confirm that the model is good at producing the kind of answer the judge likes.
+
+This does not mean judge based evaluation should be discarded. It means judge scores should not be used alone for sycophancy. They need to be paired with behavior specific labels: Did the model agree? Did it correct the false premise? Did it hedge? Did it continue under the user's framing? Without those labels, judge preference can hide the exact behavior under study.
+
+\subsection{A Better Evaluation Should Match Failure, Prompt, and Metric}
+
+The practical conclusion is simple: the evaluation design should start from the failure type. If the target is direct user agreement, agreement rate is appropriate. If the target is false premise acceptance, the prompt must contain a false premise and the metric must score correction behavior. If the target is reward hacking, then reward score must be compared against an independent notion of factual or task success. If the target is hedged correction, binary accuracy is not enough.
+
+This alignment between failure, prompt, and metric is still missing in many studies. The field has strong benchmarks and many useful metrics, but they are often reused without asking whether they fit the specific behavior. That is why sycophancy results are hard to compare. The papers may be using similar words, but the underlying evaluations are pointed at different targets.
+
+\section{Limitations}
+
+This review has several limitations. First, the literature on sycophancy and preference alignment is developing quickly, so recent or unpublished work may be missing. Second, the taxonomy involves judgment. Some papers fit multiple categories because they study both preference optimization and user facing behavior. Third, the review does not pool numerical results because the selected studies use different prompts, datasets, model families, and metrics.
+
+Another limitation is that mixed or hedged forms of sycophancy remain difficult to classify. The review identifies this as an evaluation gap, but the literature does not yet provide a fully standardized solution. This means some categories in the taxonomy are more mature than others.
+
+Finally, the coded distribution tables are intended to make the synthesis more transparent, but they depend on the coding scheme used in this review. Some papers could reasonably be assigned to more than one category, especially when they combine benchmark evaluation, reward analysis, and human or judge based scoring.
+
+\section{Conclusion}
+
+This review examined how recent LLM alignment work defines, elicits, and measures sycophancy related behavior. Instead of treating sycophancy as a single failure mode, the paper separated several related behaviors: opinion agreement, false premise acceptance, hedged disagreement, reward seeking behavior, and persistent deceptive behavior.
+
+For \textbf{RQ1}, recent studies define sycophancy in different ways. Some focus on direct agreement with user beliefs, while others study broader reward driven failures or deception risks. These behaviors are related but should not be collapsed into one category.
+
+For \textbf{RQ2}, prompt designs differ in what they test. User opinion prompts reveal direct agreement, false premise prompts test correction, preference pressure prompts connect the issue to alignment training, and multiple choice prompts provide cleaner but less natural diagnostic signals.
+
+For \textbf{RQ3}, current metrics vary in usefulness. Accuracy and truthfulness scores are easy to report but weak for mixed or hedged responses. Agreement rate and false positive rate are more direct for sycophancy but depend on prompt design. Reward scores and judge preferences are useful but can reward style, politeness, or user satisfaction instead of factual correction.
+
+Overall, sycophancy evaluation should become more behavior specific. Researchers should state exactly what failure they are measuring and choose prompts and metrics that match that failure. Without this, evaluations may show that a model sounds helpful while missing whether it actually corrected the user.
+
+\bibliography{references}
+
+\end{document}
