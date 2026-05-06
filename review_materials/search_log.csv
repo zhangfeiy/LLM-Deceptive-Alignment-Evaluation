@@ -1,0 +1,34 @@
+source,query_or_method,records_retrieved,notes
+Google Scholar,"large language model AND sycophancy",18,Initial search for direct sycophancy papers
+Google Scholar,"LLM AND false agreement OR user agreement",13,Search for user-belief agreement and direct sycophancy evaluation
+Google Scholar,"RLHF AND reward hacking AND language model",12,Search for reward hacking and RLHF-related failure modes
+Google Scholar,"DPO AND preference optimization AND language model",9,Search for direct preference optimization papers
+Google Scholar,"LLM-as-a-judge AND bias AND evaluation",8,Search for judge-model evaluation limitations
+Google Scholar,"TruthfulQA AND language model truthfulness",7,Search for truthfulness benchmark and related evaluation papers
+arXiv,"sycophancy large language models",9,Recent preprints on sycophantic behavior
+arXiv,"reward model overoptimization LLM",8,Reward overoptimization and reward hacking papers
+arXiv,"deceptive alignment language models",7,Deception and alignment-risk papers
+arXiv,"red teaming language models",6,Red-team evaluation papers
+arXiv,"direct preference optimization alignment",6,Direct preference optimization and related alignment methods
+arXiv,"LLM judge evaluation bias",4,Judge-model evaluation and bias papers
+arXiv,"false premise language model truthfulness",6,False-premise and truthfulness-related papers
+Semantic Scholar,"TruthfulQA language model truthfulness",6,Truthfulness benchmark papers and related citations
+Semantic Scholar,"HELM language model evaluation",5,Broad LLM evaluation framework papers
+Semantic Scholar,"preference alignment large language models",4,General preference-alignment search
+Semantic Scholar,"sycophancy reward hacking LLM",4,Search for papers connecting sycophancy with reward-based failures
+ACM Digital Library,"language model evaluation truthfulness",7,Conference papers on truthfulness and evaluation
+ACM Digital Library,"LLM sycophancy evaluation",4,Search for sycophancy-related evaluation papers
+ACM Digital Library,"human feedback language model alignment",6,Alignment and feedback-related studies
+ACM Digital Library,"LLM-as-a-judge evaluation",4,Judge-based evaluation papers
+ACM Digital Library,"red teaming language models",3,Adversarial evaluation papers
+IEEE Xplore,"large language model alignment evaluation",8,Evaluation and alignment-related search
+IEEE Xplore,"reward hacking artificial intelligence",6,Reward gaming and reward hacking search
+IEEE Xplore,"truthfulness evaluation language models",5,Truthfulness and benchmark-related search
+IEEE Xplore,"LLM judge evaluation bias",4,Judge-based evaluation search
+IEEE Xplore,"human feedback alignment language models",4,Preference-alignment search
+IEEE Xplore,"deceptive alignment AI systems",3,Search for broader deception-risk papers
+Backward/forward citation search,"Citation tracing from RLHF papers",4,Backward and forward citation search from foundational RLHF papers
+Backward/forward citation search,"Citation tracing from DPO and direct preference optimization papers",3,Backward and forward citation search from DPO-related papers
+Backward/forward citation search,"Citation tracing from TruthfulQA and HELM",4,Backward and forward citation search from truthfulness and evaluation benchmarks
+Backward/forward citation search,"Citation tracing from sycophancy papers",4,Backward and forward citation search from direct sycophancy papers
+Backward/forward citation search,"Citation tracing from reward-overoptimization and reward-gaming papers",3,Backward and forward citation search from reward failure papers
